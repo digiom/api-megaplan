@@ -87,19 +87,6 @@ final class HttpRequestExecutor
 				$this->hostApiPath = $apiClient->getHost() . Constants::API_PATH;
 				$this->url = $this->hostApiPath . $url;
 				$this->auth($apiClient);
-
-				if($apiClient->isPrettyPrintJson())
-				{
-					$this->header('Lognex-Pretty-Print-JSON', 'true');
-				}
-				if($apiClient->isPricePrecision())
-				{
-					$this->header('X-Lognex-Precision', 'true');
-				}
-				if($apiClient->isWithoutWebhookContent())
-				{
-					$this->header('X-Lognex-WebHook-Disable', 'true');
-				}
 				break;
 			case static::TYPE_URL:
 				$this->httpClient = $apiClient->getHttpClient();
@@ -149,7 +136,12 @@ final class HttpRequestExecutor
 			return $this->header('Authorization', 'Bearer ' . $api->getToken());
 		}
 
-		return $this->header('Authorization', 'Basic ' . base64_encode($api->getLogin() . ':' . $api->getPassword()));
+		if($api->getAppToken())
+		{
+			return $this->header('Authorization', 'Bearer ' . $api->getAppToken());
+		}
+
+		return $this;
 	}
 
 	/**

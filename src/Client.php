@@ -23,6 +23,11 @@ class Client
 	/**
 	 * @var string
 	 */
+	private $type = 'user';
+
+	/**
+	 * @var string
+	 */
 	private $login;
 
 	/**
@@ -34,6 +39,26 @@ class Client
 	 * @var string
 	 */
 	private $token = '';
+
+	/**
+	 * @var string
+	 */
+	private $token_refresh = '';
+
+	/**
+	 * @var string
+	 */
+	private $token_expires = 0;
+
+	/**
+	 * @var string
+	 */
+	private $app_uuid = '';
+
+	/**
+	 * @var string
+	 */
+	private $app_token = '';
 
 	/**
 	 * @var HttpClient
@@ -51,7 +76,7 @@ class Client
 	 *
 	 * @throws Exception
 	 */
-	public function __construct(string $host, bool $forceHttps, array $credentials, HttpClient $http_client = null)
+	public function __construct(string $host, bool $forceHttps, array $credentials = [], HttpClient $http_client = null)
 	{
 		if(empty($host))
 		{
@@ -59,11 +84,6 @@ class Client
 		}
 
 		$host = trim($host);
-
-		if($this->isInvalidCredentials($credentials))
-		{
-			throw new RuntimeException('Credential login, password or token must be set!');
-		}
 
 		while($this->endsWith($host, '/'))
 		{
@@ -95,7 +115,7 @@ class Client
 
 		$this->setHttpClient($http_client);
 
-		$this->setCredentials($credentials);
+		//$this->setCredentials($credentials);
 	}
 
 	/**
@@ -208,5 +228,110 @@ class Client
 	public function api(string $path): HttpRequestExecutor
 	{
 		return HttpRequestExecutor::path($this, $path);
+	}
+
+	/**
+	 * @return string
+	 */
+	public function getTokenRefresh(): string
+	{
+		return $this->token_refresh;
+	}
+
+	/**
+	 * @param string $token_refresh
+	 */
+	public function setTokenRefresh(string $token_refresh)
+	{
+		$this->token_refresh = $token_refresh;
+	}
+
+	/**
+	 * @return int|string
+	 */
+	public function getTokenExpires()
+	{
+		return $this->token_expires;
+	}
+
+	/**
+	 * @param int|string $token_expires
+	 */
+	public function setTokenExpires($token_expires)
+	{
+		$this->token_expires = $token_expires;
+	}
+
+	/**
+	 * @return string
+	 */
+	public function getAppUuid(): string
+	{
+		return $this->app_uuid;
+	}
+
+	/**
+	 * @param string $app_uuid
+	 */
+	public function setAppUuid(string $app_uuid)
+	{
+		$this->app_uuid = $app_uuid;
+	}
+
+	/**
+	 * @return string
+	 */
+	public function getAppToken(): string
+	{
+		return $this->app_token;
+	}
+
+	/**
+	 * @param string $app_token
+	 */
+	public function setAppToken(string $app_token)
+	{
+		$this->app_token = $app_token;
+	}
+
+	/**
+	 * @return string
+	 */
+	public function getType(): string
+	{
+		return $this->type;
+	}
+
+	/**
+	 * @param string $type
+	 */
+	public function setType(string $type)
+	{
+		$this->type = $type;
+	}
+
+	/**
+	 * Получение нового токена
+	 *
+	 * @param $data
+	 *
+	 * @return string
+	 */
+	public function generateTokenByData($data = [])
+	{
+		$fields =
+		[
+			'username' => $data['login'],
+			'password' => $data['password'],
+			'grant_type' => 'password',
+		];
+
+		$result = json_decode($this->api('/auth/access_token')->body($fields)->post(''), true);
+
+		$this->setToken($result['access_token']);
+		$this->setTokenRefresh($result['refresh_token']);
+		$this->setTokenExpires($result['expires_in']);
+
+		return $result['access_token'];
 	}
 }
